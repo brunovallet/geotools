@@ -1,7 +1,6 @@
 # detection de thermiques par RANSAC à partir de traces GPS
 # l'idée est que les paras forment des cercles approchés dans les thermiques
 #
-# import math, random
 import numpy as np
 import numpy.random as nr
 import matplotlib.pyplot as plt
@@ -37,8 +36,8 @@ class Thermique:
     def __init__(self, pos=np.zeros(2), r=0):
         self.pos = pos
         self.r = r
-        self.inliers = []
-        self.outliers = []
+        self.inliers = [] # liste des paras appartenant au thermique
+        self.outliers = [] # liste des paras n'appartenant pas au thermique
 
     def __str__(self):
         return "Thrm(%s, %s)" % (self.pos, self.r)
@@ -67,8 +66,8 @@ def intersect(para1: Para, para2: Para):
     return para1.pos + (det(v12, ray2) / d12) * ray1
 
 
-# Detection de cercles par RANSAC avec nombre fixé d'itérations n_iter, seuil de distance d'inlier et seuil angulaire (en radians)
-# renvoie la distance des points à la meilleure droite (permet de selectionner facilement in/outliers
+# Detection de thermiques par RANSAC avec nombre fixé d'itérations n_iter, seuil de distance d'inlier et seuil angulaire (en radians)
+# renvoie le meilleur thermique trouvé
 def ransac(paras, n_iter: int, max_dist: float, max_angle: float):
     sin_max_angle = math.sin(max_angle)
     best_thermique = Thermique()
@@ -106,8 +105,8 @@ def ransac(paras, n_iter: int, max_dist: float, max_angle: float):
     return best_thermique
 
 
-# Detection de droites multiples en itérant RANSAC
-# Renvoie l'ensemble des droites trouvées, définies par un ensemble de segments (chacune)
+# Detection de thermiques multiples en itérant RANSAC
+# Renvoie l'ensemble des thermiques trouvés
 def multi_ransac(paras: np.array, n_iter: int, max_dist: float, max_angle: float, n_min: int):
     ret = []
     n_inliers = n_min + 1
@@ -122,23 +121,16 @@ def multi_ransac(paras: np.array, n_iter: int, max_dist: float, max_angle: float
 
 
 if __name__ == "__main__":
-    paras = []
-    d_max = 100  # distance max d'un para/thermique au point (0,0)
-    n_thrm = 3  # nombre de thermiques
-    n_para = 9  # nombre de paras par thermique
-    n_outliers = 24  # nombre de paras pas dans un thermique
-    pos_noise = 2  # bruit sur la position d'un para
-    dir_noise = 0.1  # bruit sur la direction d'un para
-    r_av_thrm = 15  # rayon moyen d'un thermique
-    r_var_thrm = 5  # variance sur le rayon d'un thermique
-
     thermiques = [Thermique(np.random.normal(0, d_max, 2), np.random.normal(r_av_thrm, r_var_thrm)) for i in range(n_thrm)]
+    paras = []
+    # generation de paras dans des thermiques
     for thermique in thermiques:
         for i in range(n_para):
             dir = 2*math.pi*random.random()
             perturb = nr.normal(0, pos_noise, 2)
             paras.append(Para(thermique.pos + thermique.r * unit(dir-math.pi/2) + perturb,
                               dir + nr.normal(0, dir_noise)))
+    # generation de paras en dehors de thermiques
     for i in range(n_outliers):
         paras.append(Para(nr.normal(0, d_max, 2), 2*math.pi*random.random()))
 
